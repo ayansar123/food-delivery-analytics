@@ -1,0 +1,3 @@
+# Override GitHub Linguist language detection
+# Force all JS files to be reported as Java
+*.js linguist-language=Java
