@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Delivery Analytics | Executive Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <script>
+        // Prevent theme flash on page load
+        if ((localStorage.getItem("analytics_theme") || "light") === "light") {
+            document.body.classList.add("light-theme");
+        }
+    </script>
+    <!-- Login Screen Overlay -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <i class="fa-solid fa-pizza-slice logo-icon"></i>
+                <h2>DelivAnalytica</h2>
+                <span>Corporate Portal Access</span>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" autocomplete="off" required placeholder="Enter username...">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Enter password...">
+                </div>
+                <div id="login-error-msg" class="login-error-msg"></div>
+                <button type="submit" class="btn-login">
+                    <span>Login</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-container" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-pizza-slice logo-icon"></i>
+                <div class="logo-text">
+                    <h2>DelivAnalytica</h2>
+                    <span>Food Delivery Analytics</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="overview">
+                    <i class="fa-solid fa-chart-line"></i> Overview
+                </button>
+                <button class="nav-item" data-tab="retention">
+                    <i class="fa-solid fa-users-viewfinder"></i> Cohort & Retention
+                </button>
+                <button class="nav-item" data-tab="operations">
+                    <i class="fa-solid fa-truck-fast"></i> Operations
+                </button>
+                <button class="nav-item" data-tab="sql-queries">
+                    <i class="fa-solid fa-database"></i> SQL Query Sandbox
+                </button>
+                <button class="nav-item" data-tab="schema-explorer">
+                    <i class="fa-solid fa-sitemap"></i> Schema Explorer
+                </button>
+                <button class="nav-item" data-tab="forecasting">
+                    <i class="fa-solid fa-brain"></i> Predictive Models
+                </button>
+                <button class="nav-item" data-tab="settings">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <div class="status-indicator online"></div>
+                    <span>SQLite Connected</span>
+                </div>
+                <button class="btn-theme" id="btn-theme-toggle">
+                    <i class="fa-solid fa-sun"></i> <span>Light Mode</span>
+                </button>
+                <button class="btn-logout" id="btn-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="content-header">
+                <div class="header-titles-wrapper" style="display: flex; align-items: center; gap: 15px;">
+                    <div id="user-avatar-display" class="user-avatar-small" style="font-size: 24px; width: 48px; height: 48px; border-radius: 50%; background: var(--bg-secondary); border: 2px solid var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(168,85,247,0.2);">💼</div>
+                    <div class="header-titles">
+                        <h1 id="header-greeting">Welcome back, Admin!</h1>
+                        <p class="subtitle">Operational & financial analytics powered by SQL & Python</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="filter-group">
+                        <i class="fa-solid fa-filter"></i>
+                        <select id="city-selector" class="city-selector">
+                            <option value="All">All Cities</option>
+                            <option value="New York">New York</option>
+                            <option value="Los Angeles">Los Angeles</option>
+                            <option value="Chicago">Chicago</option>
+                            <option value="Houston">Houston</option>
+                            <option value="Miami">Miami</option>
+                        </select>
+                    </div>
+                    <div class="date-badge">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span id="current-date">Jan 1, 2026 - Jun 24, 2026</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- KPI Metric Cards Grid -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Gross Merchandise Value</span>
+                        <h2 class="kpi-value" id="kpi-gmv">$0.00</h2>
+                        <span class="kpi-subtext"><i class="fa-solid fa-arrow-trend-up text-success"></i> GMV Sales</span>
+                    </div>
+                    <div class="kpi-icon-container bg-primary-soft">
+                        <i class="fa-solid fa-wallet text-primary"></i>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Net Platform Revenue</span>
+                        <h2 class="kpi-value" id="kpi-revenue">$0.00</h2>
+                        <span class="kpi-subtext" id="kpi-revenue-percentage">0% of total GMV</span>
+                    </div>
+                    <div class="kpi-icon-container bg-success-soft">
+                        <i class="fa-solid fa-chart-bar text-success"></i>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Total Completed Orders</span>
+                        <h2 class="kpi-value" id="kpi-orders">0</h2>
+                        <span class="kpi-subtext" id="kpi-aov">Avg Order Val: $0.00</span>
+                    </div>
+                    <div class="kpi-icon-container bg-warning-soft">
+                        <i class="fa-solid fa-bag-shopping text-warning"></i>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-info">
+                        <span class="kpi-label">Avg Delivery Duration</span>
+                        <h2 class="kpi-value" id="kpi-duration">0.0 min</h2>
+                        <span class="kpi-subtext" id="kpi-rating">Avg Driver Rating: 0.0 ★</span>
+                    </div>
+                    <div class="kpi-icon-container bg-danger-soft">
+                        <i class="fa-solid fa-clock text-danger"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab Contents -->
+            <!-- 1. OVERVIEW TAB -->
+            <div class="tab-content active" id="tab-overview">
+                <div class="dashboard-row grid-2-1">
+                    <div class="chart-panel card">
+                        <div class="panel-header">
+                            <h3>Monthly Sales Performance & Growth</h3>
+                            <span class="badge">Line & Bar</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="monthlyGrowthChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-panel card">
+                        <div class="panel-header">
+                            <h3>Cuisine Sales Contribution</h3>
+                            <span class="badge">Doughnut</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="cuisineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-row grid-1-1">
+                    <div class="card table-panel">
+                        <div class="panel-header">
+                            <h3>Top 5 Restaurants by Sales GMV</h3>
+                            <div class="panel-actions">
+                                <button class="btn-export" id="btn-export-restaurants"><i class="fa-solid fa-download"></i> CSV</button>
+                                <i class="fa-solid fa-crown text-warning"></i>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="top-restaurants-table">
+                                <thead>
+                                    <tr>
+                                        <th>Restaurant Name</th>
+                                        <th>Cuisine</th>
+                                        <th>City</th>
+                                        <th>Completed Orders</th>
+                                        <th>Total Sales ($)</th>
+                                        <th>Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="card table-panel">
+                        <div class="panel-header">
+                            <h3>Customer Tier Insights (Free vs Premium)</h3>
+                            <div class="panel-actions">
+                                <button class="btn-export" id="btn-export-tiers"><i class="fa-solid fa-download"></i> CSV</button>
+                                <i class="fa-solid fa-award text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table id="tier-comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tier</th>
+                                        <th>Active Users</th>
+                                        <th>Orders</th>
+                                        <th>Total GMV ($)</th>
+                                        <th>Avg Subtotal ($)</th>
+                                        <th>Avg Delivery Fee ($)</th>
+                                        <th>Total Discounts ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. RETENTION TAB -->
+            <div class="tab-content" id="tab-retention">
+                <div class="card heatmap-panel">
+                    <div class="panel-header">
+                        <h3>Customer Cohort Retention Rate Matrix (MoM %)</h3>
+                        <p class="panel-subtitle">Tracks unique customers signing up in a cohort month and their repeat order percentage over time</p>
+                    </div>
+                    <div class="cohort-matrix-container">
+                        <!-- Custom rendered CSS/JS cohort matrix -->
+                        <div class="cohort-table-responsive">
+                            <table id="cohort-matrix-table" class="cohort-table">
+                                <thead>
+                                    <!-- Populated dynamically -->
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. OPERATIONS TAB -->
+            <div class="tab-content" id="tab-operations">
+                <div class="dashboard-row grid-2-1">
+                    <div class="chart-panel card">
+                        <div class="panel-header">
+                            <h3>Hourly Order Trends & Cancellation Rates</h3>
+                            <span class="badge">Hour Peaks</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="hourlyPeaksChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-panel card">
+                        <div class="panel-header">
+                            <h3>Delivery Speed by Vehicle Type</h3>
+                            <span class="badge">Efficiency</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="vehiclePerformanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-row grid-2-1" style="margin-top: 24px;">
+                    <div class="card map-panel" style="position: relative;">
+                        <div class="panel-header">
+                            <h3>Live Dispatch Fleet Telemetry Map</h3>
+                            <span class="badge live-badge"><i class="fa-solid fa-circle text-danger" style="animation: pulse 1.5s infinite; font-size: 8px; vertical-align: middle; margin-right: 4px;"></i> LIVE SIMULATION</span>
+                        </div>
+                        <div class="map-wrapper" style="height: 380px; background-color: var(--bg-primary); border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color);">
+                            <canvas id="dispatch-map" style="width: 100%; height: 100%; display: block;"></canvas>
+                            <!-- Live Telemetry Overlay popup -->
+                            <div id="map-tooltip" class="map-tooltip" style="display: none; position: absolute; background: rgba(24, 24, 27, 0.95); border: 1px solid var(--primary); padding: 12px; border-radius: 8px; color: var(--text-primary); font-size: 12px; pointer-events: none; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"></div>
+                        </div>
+                    </div>
+                    <div class="card feed-panel">
+                        <div class="panel-header">
+                            <h3>Active Dispatch Event Feed</h3>
+                            <div class="feed-status" style="font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--text-secondary);">
+                                <span class="status-indicator online" style="width: 6px; height: 6px;"></span> Active
+                            </div>
+                        </div>
+                        <div id="live-activity-feed" class="live-activity-feed" style="height: 380px; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Injected dynamically via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCHEMA EXPLORER TAB -->
+            <div class="tab-content" id="tab-schema-explorer">
+                <div class="card schema-panel">
+                    <div class="panel-header">
+                        <h3>SQLite Database Schema & Entity Relationships</h3>
+                        <p class="panel-subtitle">Interactive map of tables, keys, column data types, and primary-to-foreign key associations in the production SQLite database.</p>
+                    </div>
+                    
+                    <!-- Diagnostics Info Summary -->
+                    <div class="diagnostics-summary-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 24px;">
+                        <div class="diag-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px;">
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Database File Size</span>
+                            <h3 id="diag-file-size" style="font-size: 20px; font-weight: 800; color: var(--primary);">0.00 KB</h3>
+                        </div>
+                        <div class="diag-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px;">
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Integrity Check</span>
+                            <h3 id="diag-integrity" style="font-size: 20px; font-weight: 800; color: var(--success);">OK</h3>
+                        </div>
+                        <div class="diag-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px;">
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Tables Count</span>
+                            <h3 id="diag-tables" style="font-size: 20px; font-weight: 800; color: var(--warning);">6</h3>
+                        </div>
+                        <div class="diag-stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px;">
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Total Row Count</span>
+                            <h3 id="diag-rows" style="font-size: 20px; font-weight: 800; color: var(--danger);">0</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="schema-layout-container" style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; position: relative;">
+                        <!-- Table cards will be rendered dynamically -->
+                        <div id="schema-tables-grid" class="schema-tables-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; width: 100%;">
+                            <!-- Dynamically loaded via app.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- PREDICTIVE FORECASTING TAB -->
+            <div class="tab-content" id="tab-forecasting">
+                <!-- Forecast KPIs Row -->
+                <section class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Projected Q3 GMV</span>
+                            <h2 class="kpi-value" id="fore-q3-gmv">$0.00</h2>
+                            <span class="kpi-subtext" id="fore-growth">+0.0% Trend</span>
+                        </div>
+                        <div class="kpi-icon-container bg-primary-soft">
+                            <i class="fa-solid fa-square-trend-up text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Model Accuracy</span>
+                            <h2 class="kpi-value" id="fore-r2">R² = 0.000</h2>
+                            <span class="kpi-subtext"><i class="fa-solid fa-chart-line text-success"></i> Strong Fit</span>
+                        </div>
+                        <div class="kpi-icon-container bg-success-soft">
+                            <i class="fa-solid fa-calculator text-success"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <span class="kpi-label">Forecast Engine</span>
+                            <h2 class="kpi-value" style="font-size: 18px;">Ordinary Least Squares</h2>
+                            <span class="kpi-subtext">Regression Analysis</span>
+                        </div>
+                        <div class="kpi-icon-container bg-warning-soft">
+                            <i class="fa-solid fa-gears text-warning"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-info">
+                            <span class="kpi-label">AI Agent Status</span>
+                            <h2 class="kpi-value" style="font-size: 18px; color: var(--success);">DelivAI Active</h2>
+                            <span class="kpi-subtext">Simulated NLP Parsing</span>
+                        </div>
+                        <div class="kpi-icon-container bg-danger-soft">
+                            <i class="fa-solid fa-robot text-danger"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="dashboard-row grid-2-1">
+                    <div class="chart-panel card">
+                        <div class="panel-header">
+                            <h3>GMV Sales 3-Month Projection Forecast</h3>
+                            <span class="badge" style="background-color: var(--success-soft); color: var(--success);">Q3 Linear Model</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="forecastChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card terminal-panel">
+                        <div class="panel-header">
+                            <h3>DelivAI Interactive Analytics Agent</h3>
+                            <span class="badge"><i class="fa-solid fa-brain"></i> AI Chatbot</span>
+                        </div>
+                        <div id="delivai-terminal-container" style="height: 380px;">
+                            <!-- Injected by forecaster.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Parameters Summary -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="panel-header">
+                        <h3>Model Diagnostics & Statistical Coefficients</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 15px 0;">
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Equation Model Type</span>
+                            <span id="model-type-text" style="font-size: 14px; font-weight: 700;">Loading...</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Slope Coefficient (Beta)</span>
+                            <span id="model-slope-text" style="font-size: 14px; font-weight: 700;">Loading...</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Forecast Error Margin (MAPE)</span>
+                            <span id="model-text" style="font-size: 14px; font-weight: 700;"><span id="model-mape-text">0.0%</span></span>
+                        </div>
+                        <div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: var(--text-secondary); display: block; margin-bottom: 4px;">Statistical Significance</span>
+                            <span id="model-sig-text" style="font-size: 14px; font-weight: 700; color: var(--success);">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. SQL QUERY SANDBOX -->
+            <div class="tab-content" id="tab-sql-queries">
+                <div class="card sql-panel">
+                    <div class="panel-header">
+                        <h3>Analytics Query Repository</h3>
+                        <p class="panel-subtitle">Select a KPI query to view the production-grade SQL code executed on the SQLite database.</p>
+                    </div>
+                    <div class="sql-sandbox-layout">
+                        <div class="sql-sidebar">
+                            <button class="sql-tab active" data-sql="cohort_retention">Cohort Retention Analysis</button>
+                            <button class="sql-tab" data-sql="executive_kpis">Executive Dashboard KPIs</button>
+                            <button class="sql-tab" data-sql="monthly_growth">Monthly Revenue & Growth</button>
+                            <button class="sql-tab" data-sql="cuisine_analysis">Cuisine Sales Breakdown</button>
+                            <button class="sql-tab" data-sql="vehicle_performance">Vehicle Dispatch Efficiency</button>
+                            <button class="sql-tab" data-sql="hourly_peaks">Peak Hours & Cancellations</button>
+                            <button class="sql-tab" data-sql="tier_comparison">Free vs Premium Analysis</button>
+                        </div>
+                        <div class="sql-viewer" style="display: flex; flex-direction: column; height: 100%;">
+                            <div class="code-header">
+                                <span><i class="fa-solid fa-code"></i> sqlite_queries.sql</span>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn-copy" id="btn-copy-code"><i class="fa-regular fa-copy"></i> Copy Query</button>
+                                    <button class="btn-run" id="btn-run-query" style="background-color: var(--success); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all var(--transition-speed) ease;"><i class="fa-solid fa-play"></i> Run Query</button>
+                                </div>
+                            </div>
+                            <pre style="flex-grow: 1; margin-bottom: 15px;"><code id="sql-code-block">Loading queries...</code></pre>
+                            
+                            <!-- SQL Sandbox Execution Results Output -->
+                            <div id="sql-execution-output" class="sql-execution-output" style="display: none; background-color: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; font-family: monospace; font-size: 13px;">
+                                <div class="output-header" style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 12px; color: var(--text-secondary); font-family: var(--font-main);">
+                                    <span id="sql-status-text"><i class="fa-solid fa-circle-notch fa-spin"></i> Executing query...</span>
+                                    <span id="sql-time-text">0.0ms</span>
+                                </div>
+                                <div class="output-table-wrapper" style="max-height: 220px; overflow-y: auto;">
+                                    <table id="sql-output-table" style="width: 100%; border-collapse: collapse; font-family: var(--font-main);">
+                                        <thead><!-- Injected --></thead>
+                                        <tbody><!-- Injected --></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. SETTINGS PANEL -->
+            <div class="tab-content" id="tab-settings">
+                <div class="dashboard-row grid-1-1">
+                    <div class="card settings-card">
+                        <div class="panel-header">
+                            <h3>User Profile Settings</h3>
+                            <i class="fa-solid fa-user-gear text-primary"></i>
+                        </div>
+                        <div class="settings-form">
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label for="settings-username">Display Name</label>
+                                <input type="text" id="settings-username" placeholder="Change display name...">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px;">Select User Avatar</label>
+                                <div class="avatar-selection-grid" style="display: flex; gap: 12px; padding: 4px 0;">
+                                    <div class="avatar-option active" data-avatar="admin" style="cursor: pointer; padding: 8px; border: 2px solid var(--primary); border-radius: 12px; background: rgba(255,255,255,0.02); font-size: 20px; transition: all var(--transition-speed) ease; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" title="Corporate Executive">💼</div>
+                                    <div class="avatar-option" data-avatar="analyst" style="cursor: pointer; padding: 8px; border: 2px solid transparent; border-radius: 12px; background: rgba(255,255,255,0.02); font-size: 20px; transition: all var(--transition-speed) ease; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" title="Senior Analyst">📈</div>
+                                    <div class="avatar-option" data-avatar="developer" style="cursor: pointer; padding: 8px; border: 2px solid transparent; border-radius: 12px; background: rgba(255,255,255,0.02); font-size: 20px; transition: all var(--transition-speed) ease; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" title="Lead Developer">💻</div>
+                                    <div class="avatar-option" data-avatar="guest" style="cursor: pointer; padding: 8px; border: 2px solid transparent; border-radius: 12px; background: rgba(255,255,255,0.02); font-size: 20px; transition: all var(--transition-speed) ease; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;" title="Guest Reviewer">👤</div>
+                                </div>
+                            </div>
+                            <button class="btn-save-settings" id="btn-save-profile">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Profile Name & Avatar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card settings-card">
+                        <div class="panel-header">
+                            <h3>Dashboard Preferences</h3>
+                            <i class="fa-solid fa-sliders text-warning"></i>
+                        </div>
+                        <div class="settings-form">
+                            <div class="form-group">
+                                <label for="settings-default-city">Default Operating City</label>
+                                <select id="settings-default-city" class="settings-select">
+                                    <option value="All">All Cities</option>
+                                    <option value="New York">New York</option>
+                                    <option value="Los Angeles">Los Angeles</option>
+                                    <option value="Chicago">Chicago</option>
+                                    <option value="Houston">Houston</option>
+                                    <option value="Miami">Miami</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top: 15px; margin-bottom: 15px;">
+                                <label for="settings-currency">Display Currency Symbol</label>
+                                <select id="settings-currency" class="settings-select">
+                                    <option value="$">USD ($)</option>
+                                    <option value="€">EUR (€)</option>
+                                    <option value="£">GBP (£)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px;">Accent Theme Color</label>
+                                <div class="accent-color-selector" style="display: flex; gap: 12px; padding: 4px 0;">
+                                    <button class="color-dot active" data-color="purple" style="background-color: #a855f7; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 10px rgba(168,85,247,0.5); padding: 0;" title="Imperial Purple"></button>
+                                    <button class="color-dot" data-color="blue" style="background-color: #3b82f6; width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;" title="Electric Blue"></button>
+                                    <button class="color-dot" data-color="emerald" style="background-color: #10b981; width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;" title="Forest Emerald"></button>
+                                    <button class="color-dot" data-color="amber" style="background-color: #f59e0b; width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;" title="Amber Sunset"></button>
+                                    <button class="color-dot" data-color="rose" style="background-color: #f43f5e; width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0;" title="Crimson Rose"></button>
+                                </div>
+                            </div>
+                            <button class="btn-save-settings" id="btn-save-prefs">
+                                <i class="fa-solid fa-floppy-disk"></i> Save Preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card settings-card danger-zone-card">
+                    <div class="panel-header">
+                        <h3 class="text-danger">Danger Zone</h3>
+                        <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                    </div>
+                    <p class="panel-subtitle" style="margin-bottom: 20px;">Resetting the configuration will clear all local settings, preferences, user profiles, and log you out of the session.</p>
+                    <button class="btn-danger-reset" id="btn-danger-reset">
+                        <i class="fa-solid fa-trash-can"></i> Factory Reset Dashboard
+                    </button>
+                </div>
+        </main>
+    </div>
+    <script src="data.js"></script>
+    <script src="map.js"></script>
+    <script src="forecaster.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
