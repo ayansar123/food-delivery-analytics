@@ -1,3 +1,10 @@
 # Override GitHub Linguist language detection
-# Force all JS files to be reported as Java
+# Map JavaScript files to show as Java
 *.js linguist-language=Java
+
+# Ensure SQL files are detected as SQL
+*.sql linguist-language=SQL
+
+# Exclude Python venv and generated files from language stats
+venv/** linguist-vendored
+dashboard/data.js linguist-vendored
